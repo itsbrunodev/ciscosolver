@@ -1,6 +1,6 @@
 import { execSync } from "node:child_process";
 import fs from "node:fs";
-import path from "node:path";
+import path from "node:path"; 
 
 const OUT_DIR = path.resolve("dist/offline");
 const NM_DIR = path.join(OUT_DIR, "node_modules");
@@ -9,7 +9,7 @@ const NODE_VERSION = "v20.19.0";
 
 const NATIVE_MODULES: Record<string, string> = {
   "onnxruntime-node": "1.24.3",
-  sharp: "0.34.5",
+  "onnxruntime-common": "1.24.3",
 };
 
 if (fs.existsSync(OUT_DIR)) fs.rmSync(OUT_DIR, { recursive: true });
@@ -64,7 +64,6 @@ if (nativeCached) {
     }
   }
 
-  // Prune non-win32-x64 sharp vendor files
   const sharpVendor = path.join(DEP_CACHE_DIR, "node_modules/sharp/vendor");
   if (fs.existsSync(sharpVendor)) {
     for (const dir of fs.readdirSync(sharpVendor)) {
@@ -110,6 +109,9 @@ if (fs.existsSync(nestedOrt)) {
 
 console.log("Bundling server with esbuild...");
 
+const sharpStubPath = path.join(OUT_DIR, "_sharp_stub.js");
+fs.writeFileSync(sharpStubPath, "module.exports = {};");
+
 const esbuild = await import("esbuild");
 await esbuild.build({
   entryPoints: ["server.node.ts"],
@@ -119,6 +121,14 @@ await esbuild.build({
   format: "cjs",
   outfile: path.join(OUT_DIR, "server.cjs"),
   external: Object.keys(NATIVE_MODULES),
+  plugins: [
+    {
+      name: "stub-sharp",
+      setup(build: any) {
+        build.onResolve({ filter: /^sharp$/ }, () => ({ path: sharpStubPath }));
+      },
+    },
+  ],
   minify: true,
   minifyWhitespace: true,
   minifyIdentifiers: true,
@@ -163,6 +173,8 @@ if (fs.existsSync(nodeCachePath)) {
   fs.copyFileSync(nodeCachePath, path.join(OUT_DIR, "node.exe"));
   console.log("Node.js downloaded and cached.");
 }
+
+if (fs.existsSync(sharpStubPath)) fs.rmSync(sharpStubPath);
 
 console.log("Compiling launcher...");
 

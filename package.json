@@ -7,7 +7,7 @@
     "start": "bun run index.ts",
     "tunnel": "bun run tunnel.ts",
     "dev": "bun run --hot index.ts",
-    "build": "bun run scripts/build.ts",
+    "exe": "bun run scripts/build.ts",
     "lint": "biome check --write",
     "scrape": "bun run scripts/scrape.ts",
     "ingest": "bun run scripts/ingest.ts"

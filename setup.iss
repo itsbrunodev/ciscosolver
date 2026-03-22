@@ -34,11 +34,11 @@ Source: "dist\offline\node.exe";   DestDir: "{app}"; Flags: ignoreversion
 Source: "dist\offline\node_modules\*"; DestDir: "{app}\node_modules"; Flags: recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\Cisco Solver";              Filename: "{app}\start.exe"; Tasks: launchtype\visible
-Name: "{group}\Cisco Solver (Background)"; Filename: "{app}\start.exe"; Parameters: "--hidden"; Tasks: launchtype\hidden
-Name: "{group}\Uninstall Cisco Solver";    Filename: "{uninstallexe}"
-Name: "{commondesktop}\Cisco Solver";      Filename: "{app}\start.exe"; Tasks: desktopicon and launchtype\visible
-Name: "{commondesktop}\Cisco Solver";      Filename: "{app}\start.exe"; Parameters: "--hidden"; Tasks: desktopicon and launchtype\hidden
+Name: "{commonprograms}\Cisco Solver\Cisco Solver";              Filename: "{app}\start.exe"; Tasks: launchtype\visible
+Name: "{commonprograms}\Cisco Solver\Cisco Solver (Background)"; Filename: "{app}\start.exe"; Parameters: "--hidden"; Tasks: launchtype\hidden
+Name: "{commonprograms}\Cisco Solver\Uninstall Cisco Solver";    Filename: "{uninstallexe}"
+Name: "{commondesktop}\Cisco Solver"; Filename: "{app}\start.exe"; Tasks: desktopicon and launchtype\visible
+Name: "{commondesktop}\Cisco Solver"; Filename: "{app}\start.exe"; Parameters: "--hidden"; Tasks: desktopicon and launchtype\hidden
 
 [UninstallRun]
 Filename: "taskkill"; Parameters: "/F /IM start.exe /T";  Flags: runhidden; RunOnceId: "KillLauncher"
@@ -46,65 +46,137 @@ Filename: "taskkill"; Parameters: "/F /IM ollama.exe /T"; Flags: runhidden; RunO
 Filename: "taskkill"; Parameters: "/F /IM node.exe /T";   Flags: runhidden; RunOnceId: "KillNode"
 
 [Run]
-Filename: "powershell.exe"; \
-  Parameters: "-NoProfile -ExecutionPolicy Bypass -Command ""$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri 'https://ollama.com/download/OllamaSetup.exe' -OutFile '$env:TEMP\OllamaSetup.exe'"""; \
-  StatusMsg: "Downloading Ollama runtime..."; \
-  Flags: runhidden waituntilterminated
-
-Filename: "powershell.exe"; \
-  Parameters: "-NoProfile -ExecutionPolicy Bypass -Command ""Start-Process '$env:TEMP\OllamaSetup.exe' -ArgumentList '/S' -Wait"""; \
-  StatusMsg: "Installing Ollama..."; \
-  Flags: runhidden waituntilterminated
-
-Filename: "powershell.exe"; \
-  Parameters: "-NoProfile -ExecutionPolicy Bypass -Command ""$env:OLLAMA_MODELS='{app}\ollama-models'; $env:OLLAMA_HOST='http://127.0.0.1:11435'; $srv = Start-Process '$env:LOCALAPPDATA\Programs\Ollama\ollama.exe' -ArgumentList 'serve' -PassThru -NoNewWindow; Start-Sleep 4; & '$env:LOCALAPPDATA\Programs\Ollama\ollama.exe' pull qwen2.5:7b-instruct-q4_K_M; Stop-Process -Id $srv.Id -Force -ErrorAction SilentlyContinue"""; \
-  StatusMsg: "Downloading Qwen2.5-7B model (~4 GB, please wait)..."; \
-  Flags: runhidden waituntilterminated
-
-Filename: "powershell.exe"; \
-  Parameters: "-NoProfile -ExecutionPolicy Bypass -Command ""New-Item -ItemType Directory -Force -Path '{app}\ollama' | Out-Null; Copy-Item '$env:LOCALAPPDATA\Programs\Ollama\ollama.exe' '{app}\ollama\ollama.exe' -Force; Copy-Item '$env:LOCALAPPDATA\Programs\Ollama\lib' '{app}\ollama\lib' -Recurse -Force"""; \
-  StatusMsg: "Copying Ollama runtime to installation directory..."; \
-  Flags: runhidden waituntilterminated
-
-Filename: "powershell.exe"; \
-  Parameters: "-NoProfile -ExecutionPolicy Bypass -Command ""$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri 'https://huggingface.co/datasets/itsbrunodev/ciscosolver/resolve/main/model.zip' -OutFile '$env:TEMP\model.zip'"""; \
-  StatusMsg: "Downloading embedding model (~550 MB)..."; \
-  Flags: runhidden waituntilterminated
-
-Filename: "powershell.exe"; \
-  Parameters: "-NoProfile -ExecutionPolicy Bypass -Command ""Expand-Archive -Path '$env:TEMP\model.zip' -DestinationPath '{app}' -Force; Remove-Item '$env:TEMP\model.zip' -Force"""; \
-  StatusMsg: "Extracting embedding model..."; \
-  Flags: runhidden waituntilterminated
-
-Filename: "powershell.exe"; \
-  Parameters: "-NoProfile -ExecutionPolicy Bypass -Command ""$ProgressPreference='SilentlyContinue'; New-Item -ItemType Directory -Force -Path '{app}\data' | Out-Null; Invoke-WebRequest -Uri 'https://huggingface.co/datasets/itsbrunodev/ciscosolver/resolve/main/vectors.msp' -OutFile '{app}\data\vectors.msp'"""; \
-  StatusMsg: "Downloading vector index (~420 MB)..."; \
-  Flags: runhidden waituntilterminated
-
-Filename: "{app}\start.exe"; \
-  Description: "Launch Cisco Solver"; \
-  Flags: nowait postinstall skipifsilent; \
-  Tasks: launchtype\visible
-
-Filename: "{app}\start.exe"; \
-  Parameters: "--hidden"; \
-  Description: "Launch Cisco Solver in the background"; \
-  Flags: nowait postinstall skipifsilent; \
-  Tasks: launchtype\hidden
+Filename: "{app}\start.exe"; Description: "Launch Cisco Solver"; Flags: nowait postinstall skipifsilent; Tasks: launchtype\visible
+Filename: "{app}\start.exe"; Parameters: "--hidden"; Description: "Launch Cisco Solver in the background"; Flags: nowait postinstall skipifsilent; Tasks: launchtype\hidden
 
 [Code]
+var
+  DownloadPage: TDownloadWizardPage;
+
+procedure InitializeWizard;
+begin
+  DownloadPage := CreateDownloadPage(
+    'Downloading required assets',
+    'Please wait while the required components are downloaded. This may take a while depending on your internet connection.',
+    nil
+  );
+end;
+
+procedure RunPowerShell(Script: String; StatusMsg: String);
+var
+  ScriptPath: String;
+  ResultCode: Integer;
+  AppDir: String;
+begin
+  AppDir := ExpandConstant('{app}');
+  ScriptPath := AppDir + '\~install-step.ps1';
+  WizardForm.StatusLabel.Caption := StatusMsg;
+  SaveStringToFile(ScriptPath, Script, False);
+  Exec(
+    'powershell.exe',
+    '-NoProfile -ExecutionPolicy Bypass -File "' + ScriptPath + '"',
+    AppDir,
+    SW_HIDE,
+    ewWaitUntilTerminated,
+    ResultCode
+  );
+  DeleteFile(ScriptPath);
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  AppDir: String;
+  NL: String;
+  Script: String;
+begin
+  if CurStep = ssInstall then
+  begin
+    { ── Phase 1: Download with progress bar ─────────────────────────────── }
+    DownloadPage.Clear;
+    DownloadPage.Add(
+      'https://ollama.com/download/OllamaSetup.exe',
+      'OllamaSetup.exe',
+      ''
+    );
+    DownloadPage.Add(
+      'https://huggingface.co/datasets/itsbrunodev/ciscosolver/resolve/main/model.zip',
+      'model.zip',
+      ''
+    );
+    DownloadPage.Add(
+      'https://huggingface.co/datasets/itsbrunodev/ciscosolver/resolve/main/vectors.msp',
+      'vectors.msp',
+      ''
+    );
+    DownloadPage.Show;
+    try
+      DownloadPage.Download;
+    finally
+      DownloadPage.Hide;
+    end;
+  end;
+
+  if CurStep = ssPostInstall then
+  begin
+    AppDir := ExpandConstant('{app}');
+    NL := Chr(13) + Chr(10);
+
+    { Install Ollama silently }
+    Script := 'Start-Process "' + ExpandConstant('{tmp}') + '\OllamaSetup.exe" -ArgumentList "/S" -Wait' + NL;
+    RunPowerShell(Script, 'Installing Ollama...');
+
+    { Pull Qwen model into app dir }
+    Script := '$env:OLLAMA_MODELS = "' + AppDir + '\ollama-models"' + NL;
+    Script := Script + '$env:OLLAMA_HOST = "http://127.0.0.1:11435"' + NL;
+    Script := Script + '$ollamaExe = "$env:LOCALAPPDATA\Programs\Ollama\ollama.exe"' + NL;
+    Script := Script + 'New-Item -ItemType Directory -Force -Path "' + AppDir + '\ollama-models" | Out-Null' + NL;
+    Script := Script + '$srv = Start-Process $ollamaExe -ArgumentList "serve" -PassThru -NoNewWindow' + NL;
+    Script := Script + 'Start-Sleep 5' + NL;
+    Script := Script + '& $ollamaExe pull qwen2.5:7b-instruct-q4_K_M' + NL;
+    Script := Script + 'Stop-Process -Id $srv.Id -Force -ErrorAction SilentlyContinue' + NL;
+    Script := Script + 'Start-Sleep 2' + NL;
+    RunPowerShell(Script, 'Downloading Qwen2.5-7B model (~4 GB, please wait)...');
+
+    { Copy Ollama runtime into app dir }
+    Script := 'New-Item -ItemType Directory -Force -Path "' + AppDir + '\ollama" | Out-Null' + NL;
+    Script := Script + 'Copy-Item "$env:LOCALAPPDATA\Programs\Ollama\ollama.exe" "' + AppDir + '\ollama\ollama.exe" -Force' + NL;
+    Script := Script + 'Copy-Item "$env:LOCALAPPDATA\Programs\Ollama\lib" "' + AppDir + '\ollama\lib" -Recurse -Force' + NL;
+    RunPowerShell(Script, 'Copying Ollama runtime...');
+
+    { Extract model.zip into model/ }
+    Script := '$ProgressPreference = "SilentlyContinue"' + NL;
+    Script := Script + 'Expand-Archive -Path "' + ExpandConstant('{tmp}') + '\model.zip" -DestinationPath "$env:TEMP\model-extract" -Force' + NL;
+    Script := Script + 'New-Item -ItemType Directory -Force -Path "' + AppDir + '\model" | Out-Null' + NL;
+    Script := Script + 'Copy-Item "$env:TEMP\model-extract\*" "' + AppDir + '\model" -Recurse -Force' + NL;
+    Script := Script + 'Remove-Item "$env:TEMP\model-extract" -Recurse -Force' + NL;
+    RunPowerShell(Script, 'Extracting embedding model...');
+
+    { Move vectors.msp into data/ }
+    Script := 'New-Item -ItemType Directory -Force -Path "' + AppDir + '\data" | Out-Null' + NL;
+    Script := Script + 'Copy-Item "' + ExpandConstant('{tmp}') + '\vectors.msp" "' + AppDir + '\data\vectors.msp" -Force' + NL;
+    RunPowerShell(Script, 'Installing vector index...');
+  end;
+end;
+
+function OnDownloadProgress(const Url, Filename: String; const Progress, ProgressMax: Int64): Boolean;
+begin
+  Result := True;
+end;
+
 function InitializeSetup(): Boolean;
 var
   Msg: String;
+  NL: String;
 begin
-  Msg := 'Cisco Solver requires an internet connection during installation to download:' + #13#10;
-  Msg := Msg + #13#10;
-  Msg := Msg + '  - Ollama runtime' + #13#10;
-  Msg := Msg + '  - Qwen2.5-7B language model (~4 GB)' + #13#10;
-  Msg := Msg + '  - BGE-M3 embedding model (~3 GB)' + #13#10;
-  Msg := Msg + '  - Vector search index (~420 MB)' + #13#10;
-  Msg := Msg + #13#10;
-  Msg := Msg + 'After installation the app runs fully offline.' + #13#10;
+  NL := Chr(13) + Chr(10);
+  Msg := 'Cisco Solver requires an internet connection during installation to download:' + NL;
+  Msg := Msg + NL;
+  Msg := Msg + '  - Ollama runtime' + NL;
+  Msg := Msg + '  - Qwen2.5-7B language model (~4 GB)' + NL;
+  Msg := Msg + '  - BGE-M3 embedding model (~3 GB)' + NL;
+  Msg := Msg + '  - Vector search index (~420 MB)' + NL;
+  Msg := Msg + NL;
+  Msg := Msg + 'After installation the app runs fully offline.' + NL;
   Msg := Msg + 'Total download: approximately 13 GB. Please be patient.';
 
   if not WizardSilent then
