@@ -1,0 +1,45 @@
+{
+  "name": "ciscosolver",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "bun run index.ts",
+    "tunnel": "bun run tunnel.ts",
+    "dev": "bun run --hot index.ts",
+    "build": "bun run scripts/build.ts",
+    "lint": "biome check --write",
+    "scrape": "bun run scripts/scrape.ts",
+    "ingest": "bun run scripts/ingest.ts"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.2",
+    "@types/bun": "latest",
+    "caxa": "^3.0.1",
+    "esbuild": "^0.27.4"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@google/genai": "^1.44.0",
+    "@hono/node-server": "^1.19.11",
+    "@huggingface/transformers": "^3.8.1",
+    "@orama/orama": "^3.1.18",
+    "@orama/plugin-data-persistence": "^3.1.18",
+    "cheerio": "^1.2.0",
+    "crawlee": "^3.16.0",
+    "hono": "^4.11.9",
+    "ollama": "^0.6.3",
+    "onnxruntime-common": "^1.24.3",
+    "onnxruntime-node": "^1.24.3",
+    "sharp": "^0.34.5"
+  },
+  "overrides": {
+    "onnxruntime-node": "1.24.3"
+  },
+  "trustedDependencies": [
+    "onnxruntime-node",
+    "protobufjs"
+  ]
+}

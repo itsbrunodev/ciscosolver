@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="hu">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="header">
+        <div class="header-title">
+            <div class="header-icon">C</div>
+            <h3>Cisco Solver</h3>
+        </div>
+        <div id="status-indicator" class="status-badge offline" title="A kapcsolat állapota a szerverrel">
+            <div class="status-dot"></div>
+            Offline
+        </div>
+    </div>
+
+    <!-- MAIN VIEW -->
+    <div id="view-main" class="container">
+        <div class="feature-grid">
+            <div id="go-about" class="feature-card">
+                <div class="feature-icon">📖</div>
+                <div class="feature-text-group">
+                    <div class="feature-title">A Programról</div>
+                    <div class="feature-desc">Tanuld meg hogyan kell használni</div>
+                </div>
+            </div>
+            <div id="go-health" class="feature-card">
+                <div class="feature-icon">📊</div>
+                <div class="feature-text-group">
+                    <div class="feature-title">Szerver Állapot</div>
+                    <div class="feature-desc">Teljesítmény és statisztikák</div>
+                </div>
+            </div>
+            <div id="go-settings" class="feature-card">
+                <div class="feature-icon">⚙️</div>
+                <div class="feature-text-group">
+                    <div class="feature-title">Beállítások</div>
+                    <div class="feature-desc">Konfiguráció és téma</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ABOUT VIEW -->
+    <div id="view-about" class="container hidden">
+        <div class="space-y-4">
+            <button class="btn-ghost go-back">← Vissza</button>
+
+            <!-- Text Content -->
+            <div>
+                <h4 style="font-weight: 600; margin-bottom: 4px;">Hogyan működik</h4>
+                <p class="text-muted text-xs" style="line-height: 1.6;">
+                    A Cisco Solver automatikusan átvizsgálja az oldalt, és megjelöli a helyesnek ítélt válaszokat.
+                    A programot letöltheted
+                    innen:
+                    <a href="https://dub.sh/ciscosolver" target="_blank"
+                        rel="noopener noreferrer">dub.sh/ciscosolver</a>.
+                </p>
+            </div>
+
+            <!-- Shortcuts -->
+            <div>
+                <span class="section-label">Billentyűparancsok</span>
+                <div class="hotkey-row">
+                    <span style="font-size: 13px; font-weight: 500;">Kényszerített újratöltés</span>
+                    <div>
+                        <span class="kbd">NUM +</span>
+                        <span class="kbd">CTRL ALT R</span>
+                    </div>
+                </div>
+                <div class="hotkey-row">
+                    <span style="font-size: 13px; font-weight: 500;">Jelölő ki-/bekapcsolása</span>
+                    <div>
+                        <span class="kbd">NUM -</span>
+                        <span class="kbd">CTRL ALT V</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HEALTH VIEW -->
+    <div id="view-health" class="container hidden">
+        <div class="space-y-4">
+            <button class="btn-ghost go-back">← Vissza</button>
+
+            <div id="health-error" style="color: hsl(var(--foreground));">
+                <div style="font-weight: 600; margin-bottom: 4px; font-size: 14px;">Nem sikerült csatlakozni</div>
+                <div style="font-size: 12px;">Ellenőrizd, hogy fut-e a szerver.</div>
+            </div>
+
+            <div class="space-y-4" id="health-data">
+                <!-- Server Status -->
+                <div>
+                    <span class="section-label">Szerver Állapot</span>
+                    <div class="stat-grid">
+                        <div class="stat-item">
+                            <span class="stat-label">Állapot</span>
+                            <span id="health-status" class="stat-value">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Üzemidő</span>
+                            <span id="health-uptime" class="stat-value">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">CPU</span>
+                            <span id="health-cpu" class="stat-value">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Memória</span>
+                            <span id="health-ram" class="stat-value">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Requests -->
+                <div>
+                    <span class="section-label">Kérések</span>
+                    <div class="stat-grid">
+                        <div class="stat-item">
+                            <span class="stat-label">Aktív</span>
+                            <span id="health-active" class="stat-value">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Összesen</span>
+                            <span id="health-total" class="stat-value">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Queue Stats -->
+                <div>
+                    <span class="section-label">Várólista</span>
+                    <div class="stat-grid">
+                        <div class="stat-item">
+                            <span class="stat-label">Futó</span>
+                            <span id="health-running" class="stat-value">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Várakozó</span>
+                            <span id="health-queued" class="stat-value">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Max párhuzamos</span>
+                            <span id="health-max-concurrent" class="stat-value">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Cache méret</span>
+                            <span id="health-cache" class="stat-value">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Last Updated -->
+                <div style="text-align: center; margin-top: 8px;">
+                    <span class="text-muted text-xs">Worker ID: <span id="health-worker-id">-</span></span>
+                    <br>
+                    <span class="text-muted text-xs">Utolsó frissítés: <span id="health-last-update">-</span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SETTINGS VIEW -->
+    <div id="view-settings" class="container hidden">
+        <div class="space-y-4">
+            <button class="btn-ghost go-back">← Vissza</button>
+
+            <!-- General -->
+            <div>
+                <span class="section-label">Általános</span>
+                <div class="space-y-3">
+                    <div>
+                        <label>Megjelenés</label>
+                        <div class="btn-group">
+                            <button id="btn-light" class="active">Világos</button>
+                            <button id="btn-dark">Sötét</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="SERVER_URL">Szerver URL</label>
+                        <input type="text" id="SERVER_URL" placeholder="https://assets.valec.link">
+                        <!-- <p class="form-help">Csak akkor változtasd meg, ha más porton indítottad el a szervert.</p> -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visuals -->
+            <div>
+                <span class="section-label">Vizuális Elemek</span>
+                <div class="space-y-3">
+                    <div>
+                        <label for="CHECK_INTERVAL">Ellenőrzési intervallum (ms)</label>
+                        <input type="number" id="CHECK_INTERVAL" placeholder="1000" min="1000" max="10000">
+                        <p class="form-help">Hány milliszekundumonként nézze meg, hogy van-e új kérdés.</p>
+                    </div>
+                    <div>
+                        <label for="MARKER_SIZE">Jelölő mérete (px)</label>
+                        <input type="number" id="MARKER_SIZE" placeholder="8" min="1" max="16">
+                        <p class="form-help">Tartsd kicsiben a méretet (pl. 2-8 pixel), hogy észrevétlen maradj és
+                            elkerüld a lebukást.</p>
+                    </div>
+                    <div>
+                        <label for="MARKER_COLOR">Jelölő színe</label>
+                        <div style="display: flex; gap: 12px; align-items: center;">
+                            <input type="color" id="MARKER_COLOR" style="width: 50px;">
+                            <span id="MARKER_COLOR_HEX" class="text-xs font-mono text-muted">#000000</span>
+                        </div>
+                        <p class="form-help">Kerüld az élénk vagy feltűnő színeket, például a pirosat. Az alapszínt csak
+                            világos módban használd.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced -->
+            <div>
+                <span class="section-label">Advanced</span>
+                <div class="space-y-3">
+                    <div>
+                        <label>Debug Mód</label>
+                        <div class="btn-group">
+                            <button id="btn-debug-off" class="active">Ki</button>
+                            <button id="btn-debug-on">Be</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="MIN_QUESTION_SIMILARITY">Min kérdés hasonlósága (%, 0-1)</label>
+                        <input type="number" step="0.01" id="MIN_QUESTION_SIMILARITY" placeholder="0.45" min="0"
+                            max="1">
+                        <p class="form-help">Az alacsonyabb értékek növelik az egyezéseket, de csökkenthetik a
+                            pontosságot.</p>
+                    </div>
+                    <div>
+                        <label for="MIN_ANSWER_SIMILARITY">Min válasz hasonlósága (%, 0-1)</label>
+                        <input type="number" step="0.01" id="MIN_ANSWER_SIMILARITY" placeholder="0.6" min="0" max="1">
+                    </div>
+                    <div>
+                        <label for="CANDIDATE_COUNT">Max Jelölt</label>
+                        <input type="number" id="CANDIDATE_COUNT" placeholder="100" min="1" max="100">
+                        <p class="form-help">Hány lehetséges kérdés-jelöltet keressen elő az adatbázisból az
+                            összehasonlításhoz. Minél magasabb, annál pontosabb viszont annál több időbe telik
+                            megtalálni a kérdést.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-2" style="margin-top: 16px;">
+                <button id="save" class="btn-primary" style="width: 100%">Változtatások mentése</button>
+                <button id="reset" class="btn-secondary" style="width: 100%">Visszaállítás</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="save-indicator" id="save-indicator">Mentve!</div>
+
+    <script src="popup.js"></script>
+</body>
+
+</html>
